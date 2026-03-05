@@ -1,39 +1,44 @@
 import streamlit as st
 import joblib
 import numpy as np
-import pandas as pd
 
 # Modelleri yükle
 model = joblib.load('cancer_model.pkl')
 scaler = joblib.load('scaler.pkl')
 
-st.set_page_config(page_title="Kanser Tahmin Sistemi", layout="wide")
-st.title("🩺 Meme Kanseri Teşhis Tahmin Sistemi")
-st.write("Lütfen laboratuvar sonuçlarını giriniz.")
+st.title("🩺 Meme Kanseri Teşhis Sistemi")
 
-# Özellik isimleri
+# Kaggle modelindeki 30 özelliğin tam listesi
 feature_names = [
-    'mean radius', 'mean texture', 'mean perimeter', 'mean area', 'mean smoothness',
-    'mean compactness', 'mean concavity', 'mean concave points', 'mean symmetry', 'mean fractal dimension',
-    'radius error', 'texture error', 'perimeter error', 'area error', 'smoothness error',
-    'compactness error', 'concavity error', 'concave points error', 'symmetry error', 'fractal dimension error',
-    'worst radius', 'worst texture', 'worst perimeter', 'worst area', 'worst smoothness',
-    'worst compactness', 'worst concavity', 'worst concave points', 'worst symmetry', 'worst fractal dimension'
+    'radius_mean', 'texture_mean', 'perimeter_mean', 'area_mean', 'smoothness_mean',
+    'compactness_mean', 'concavity_mean', 'concave points_mean', 'symmetry_mean', 'fractal_dimension_mean',
+    'radius_se', 'texture_se', 'perimeter_se', 'area_se', 'smoothness_se',
+    'compactness_se', 'concavity_se', 'concave points_se', 'symmetry_se', 'fractal_dimension_se',
+    'radius_worst', 'texture_worst', 'perimeter_worst', 'area_worst', 'smoothness_worst',
+    'compactness_worst', 'concavity_worst', 'concave points_worst', 'symmetry_worst', 'fractal_dimension_worst'
 ]
 
-inputs = []
-col1, col2 = st.columns(2)
-for i, name in enumerate(feature_names):
-    with col1 if i < 15 else col2:
-        val = st.number_input(f"{name}", value=0.0)
-        inputs.append(val)
+st.info("Lütfen tümör özelliklerini giriniz:")
+user_inputs = []
 
-if st.button("Tahmin Et"):
-    data = np.array([inputs])
-    scaled_data = scaler.transform(data)
-    prediction = model.predict(scaled_data)
+# Giriş alanlarını 3 sütuna bölerek daha düzenli gösterelim
+cols = st.columns(3)
+for i, name in enumerate(feature_names):
+    with cols[i % 3]:
+        val = st.number_input(f"{name}", value=0.0, format="%.4f")
+        user_inputs.append(val)
+
+if st.button("Analiz Et"):
+    # Veriyi modele uygun formata getir
+    input_array = np.array([user_inputs])
     
-    if prediction[0] == 0:
-        st.success("Sonuç: İyi Huylu (Benign) ✅")
+    # Kaggle'da yaptığın gibi: Önce scaler ile ölçeklendir
+    scaled_input = scaler.transform(input_array)
+    
+    # Tahmin yap
+    prediction = model.predict(scaled_input)
+    
+    if prediction[0] == 1:
+        st.error("Tahmin Sonucu: Kötü Huylu (Malignant) ⚠️")
     else:
-        st.error("Sonuç: Kötü Huylu (Malignant) ⚠️")
+        st.success("Tahmin Sonucu: İyi Huylu (Benign) ✅")
